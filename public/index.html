@@ -471,6 +471,92 @@
     }
 
     .divider { border: none; border-top: 1px solid #f3f4f6; margin: 16px 0; }
+
+    /* ── Mobile book cards ─────────────────────────────────────────────────────── */
+    .book-cards {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .book-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .book-card:last-child { border-bottom: none; }
+    .book-card:active { background: #f0f9ff; }
+    .book-card-img {
+      width: 42px;
+      height: 58px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      display: block;
+      flex-shrink: 0;
+    }
+    .book-card-img-ph {
+      width: 42px;
+      height: 58px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .book-card-body { flex: 1; min-width: 0; }
+    .book-card-title { font-weight: 600; font-size: 15px; color: #111827; line-height: 1.3; }
+    .book-card-author { color: #6b7280; font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .book-card-chips { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .book-card-chevron { color: #d1d5db; font-size: 24px; flex-shrink: 0; line-height: 1; font-weight: 300; }
+    .book-cards-empty {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 56px 24px;
+      text-align: center;
+    }
+    .book-cards-empty h3 { font-size: 17px; color: #374151; margin-bottom: 6px; }
+    .book-cards-empty p  { font-size: 14px; color: #9ca3af; }
+
+    /* ── Responsive / mobile ───────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      /* Layout */
+      .main { padding: 12px 12px 88px; }
+      .header { padding: 0 16px; }
+      .header-brand { font-size: 17px; }
+
+      /* Filter bar: search takes full row, dropdowns share row 2 */
+      .filters { padding: 10px 12px; gap: 8px; }
+      .search-wrap { flex: 0 0 100%; min-width: 0; }
+      select.filter-select { flex: 1; min-width: 0; font-size: 13px; }
+      .sort-group { flex: 1; }
+      .sort-btn { flex: 1; padding: 8px 2px; font-size: 12px; }
+      .filter-count { display: none; }
+
+      /* Touch targets */
+      .btn { min-height: 44px; }
+      .search-input { font-size: 16px; } /* prevent iOS zoom on focus */
+      .form-input, .form-select { font-size: 16px; } /* same */
+
+      /* Bottom-sheet modals */
+      .modal-overlay { align-items: flex-end; padding: 0; }
+      .modal { border-radius: 20px 20px 0 0; max-width: 100%; max-height: 92vh; }
+      .modal-footer { flex-direction: column-reverse; gap: 8px; padding: 16px; }
+      .modal-footer .btn { width: 100%; justify-content: center; min-height: 50px; font-size: 15px; border-radius: 12px; }
+
+      /* Forms */
+      .form-row { grid-template-columns: 1fr; }
+      .results-list { max-height: 180px; }
+    }
   </style>
 </head>
 <body>
@@ -560,6 +646,63 @@
               {count === total ? `${total} book${total !== 1 ? 's' : ''}` : `${count} of ${total}`}
             </span>
           </div>
+        </div>
+      );
+    }
+
+    // ── Mobile detection ─────────────────────────────────────────────────────────
+    function useIsMobile() {
+      const [mobile, setMobile] = useState(() => window.innerWidth < 640);
+      useEffect(() => {
+        const fn = () => setMobile(window.innerWidth < 640);
+        window.addEventListener('resize', fn);
+        return () => window.removeEventListener('resize', fn);
+      }, []);
+      return mobile;
+    }
+
+    // ── Book Cards (mobile list view) ─────────────────────────────────────────────
+    function BookCards({ books, onBook, loading }) {
+      if (loading) {
+        return (
+          <div className="book-cards-empty">
+            <p style={{ color: '#9ca3af' }}>Loading your library…</p>
+          </div>
+        );
+      }
+      if (!books.length) {
+        return (
+          <div className="book-cards-empty">
+            <h3>No books found</h3>
+            <p>Try a different search, or add the first book to the club.</p>
+          </div>
+        );
+      }
+      return (
+        <div className="book-cards">
+          {books.map(book => {
+            const isOut = !!book.checked_out_by;
+            return (
+              <div key={book.id} className="book-card" onClick={() => onBook(book)}>
+                {book.cover_url
+                  ? <img src={book.cover_url} className="book-card-img" alt="" />
+                  : <div className="book-card-img-ph">📖</div>
+                }
+                <div className="book-card-body">
+                  <div className="book-card-title">{book.title}</div>
+                  <div className="book-card-author">{book.author || 'Unknown author'}</div>
+                  <div className="book-card-chips">
+                    <span className="owner-chip">{book.owner_name}</span>
+                    <span className={`badge badge-${isOut ? 'checked' : 'available'}`}>
+                      <span className="badge-dot"/>
+                      {isOut ? `Out · ${book.checked_out_by}` : 'Available'}
+                    </span>
+                  </div>
+                </div>
+                <div className="book-card-chevron">›</div>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -816,11 +959,60 @@
         if (!q.trim()) { setResults([]); setSearchErr(false); return; }
         setSearching(true);
         setSearchErr(false);
+
+        // ── Open Library (called directly from browser — avoids server-side blocks) ──
         try {
-          const data = await api.get(`/api/search?q=${encodeURIComponent(q)}`);
-          if (data && data.error) { setSearchErr(true); setResults([]); }
-          else setResults(Array.isArray(data) ? data : []);
-        } catch { setSearchErr(true); setResults([]); }
+          const r = await fetch(
+            `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10&fields=key,title,author_name,cover_i,first_publish_year,subject`,
+            { signal: AbortSignal.timeout(8000) }
+          );
+          if (r.ok) {
+            const json = await r.json();
+            if (json.docs?.length) {
+              setResults(json.docs.map(d => ({
+                key:          d.key || null,
+                title:        d.title,
+                author:       d.author_name?.[0] || 'Unknown Author',
+                cover_url:    d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+                publish_year: d.first_publish_year ? String(d.first_publish_year) : null,
+                genre:        d.subject ? d.subject.slice(0, 3).join(', ') : null,
+              })));
+              setSearching(false);
+              return;
+            }
+          }
+        } catch (e) { console.warn('[search] Open Library:', e.message); }
+
+        // ── Google Books fallback ───────────────────────────────────────────────────
+        try {
+          const r = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&printType=books`,
+            { signal: AbortSignal.timeout(8000) }
+          );
+          if (r.ok) {
+            const json = await r.json();
+            if (json.items?.length) {
+              setResults(json.items.map(item => {
+                const info = item.volumeInfo || {};
+                let cover  = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || null;
+                if (cover) cover = cover.replace('http://', 'https://');
+                return {
+                  key:          item.id,
+                  title:        info.title || 'Unknown Title',
+                  author:       info.authors?.[0] || 'Unknown Author',
+                  cover_url:    cover,
+                  publish_year: info.publishedDate ? info.publishedDate.substring(0, 4) : null,
+                  genre:        info.categories ? info.categories.slice(0, 2).join(', ') : null,
+                };
+              }));
+              setSearching(false);
+              return;
+            }
+          }
+        } catch (e) { console.warn('[search] Google Books:', e.message); }
+
+        setSearchErr(true);
+        setResults([]);
         setSearching(false);
       }
 
@@ -906,9 +1098,9 @@
                           ))}
                         </div>
                       )}
-                      {!searching && searchErr && (
+                      {!searching && searchErr && results.length === 0 && (
                         <p className="form-hint" style={{ marginTop: 8, color: '#dc2626' }}>
-                          ⚠️ Search unavailable — check that the server is running, then try again or use "Enter manually."
+                          ⚠️ Search unavailable — try again or use "Enter manually."
                         </p>
                       )}
                       {!searching && !searchErr && query.length > 2 && results.length === 0 && (
@@ -986,6 +1178,7 @@
 
     // ── App ───────────────────────────────────────────────────────────────────────
     function App() {
+      const isMobile = useIsMobile();
       const [books, setBooks]               = useState([]);
       const [members, setMembers]           = useState([]);
       const [search, setSearch]             = useState('');
@@ -1055,10 +1248,11 @@
               members={members}
               count={filtered.length}     total={books.length}
             />
-            <BookTable
-              books={filtered} onBook={openBook} loading={loading}
-              sortCol={sortCol} sortDir={sortDir} onSort={handleSort}
-            />
+            {isMobile
+              ? <BookCards books={filtered} onBook={openBook} loading={loading} />
+              : <BookTable books={filtered} onBook={openBook} loading={loading}
+                  sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+            }
           </main>
 
           {modal?.type === 'add' &&

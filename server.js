@@ -1,7 +1,6 @@
 const http = require('node:http');
 const fs   = require('node:fs');
 const path = require('node:path');
-const url  = require('node:url');
 
 const PORT       = 3000;
 const DATA_FILE  = path.join(__dirname, 'data.json');
@@ -70,7 +69,9 @@ async function readBody(req) {
 
 // ── Server ─────────────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
-  const { pathname, query } = url.parse(req.url, true);
+  const parsed  = new URL(req.url, 'http://localhost');
+  const pathname = parsed.pathname;
+  const query    = Object.fromEntries(parsed.searchParams);
   const method = req.method;
 
   // ── API ──────────────────────────────────────────────────────────────────────
@@ -159,58 +160,72 @@ const server = http.createServer(async (req, res) => {
     return jsonRes(res, { success: true });
   }
 
-  // GET /api/search  (Google Books, falls back to Open Library)
+  // GET /api/search
   if (pathname === '/api/search' && method === 'GET') {
     const q = (query.q || '').trim();
     if (!q) return jsonRes(res, []);
 
-    // ── Try Google Books first ──────────────────────────────────────────────
-    try {
-      const url  = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&printType=books`;
-      console.log('[search] Google Books →', url);
-      const r    = await fetch(url, { signal: AbortSignal.timeout(6000) });
-      const json = await r.json();
-      console.log('[search] Google Books status:', r.status, '| items:', json.items?.length ?? 0);
-      if (json.items?.length) {
-        return jsonRes(res, json.items.map(item => {
-          const info  = item.volumeInfo || {};
-          let cover   = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || null;
-          if (cover) cover = cover.replace('http://', 'https://');
-          return {
-            key:          item.id,
-            title:        info.title || 'Unknown Title',
-            author:       info.authors?.[0] || 'Unknown Author',
-            cover_url:    cover,
-            publish_year: info.publishedDate ? info.publishedDate.substring(0, 4) : null,
-            genre:        info.categories   ? info.categories.slice(0, 2).join(', ') : null,
-            description:  info.description  ? info.description.substring(0, 500)    : null,
-          };
-        }));
-      }
-    } catch (e) {
-      console.error('[search] Google Books failed:', e.message);
-    }
+    // Proper headers so APIs don't block us as an unknown bot
+    const headers = {
+      'User-Agent': 'BookClerb/1.0 (book-club-app; contact taylor.graupmann@gmail.com)',
+      'Accept':     'application/json',
+    };
 
-    // ── Fall back to Open Library ───────────────────────────────────────────
+    // ── Open Library (primary) ──────────────────────────────────────────────
     try {
-      const url  = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10&fields=key,title,author_name,cover_i,first_publish_year,subject`;
-      console.log('[search] Open Library fallback →', url);
-      const r    = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      const json = await r.json();
-      console.log('[search] Open Library status:', r.status, '| docs:', json.docs?.length ?? 0);
-      return jsonRes(res, (json.docs || []).map(d => ({
-        key:          d.key || null,
-        title:        d.title,
-        author:       d.author_name?.[0] || 'Unknown Author',
-        cover_url:    d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
-        publish_year: d.first_publish_year ? String(d.first_publish_year) : null,
-        genre:        d.subject ? d.subject.slice(0, 3).join(', ') : null,
-        description:  null,
-      })));
-    } catch (e) {
-      console.error('[search] Open Library failed:', e.message);
-      return jsonRes(res, { error: 'Search unavailable — both sources failed' }, 500);
-    }
+      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10&fields=key,title,author_name,cover_i,first_publish_year,subject`;
+      console.log('[search] Open Library →', url);
+      const r   = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+      const ct  = r.headers.get('content-type') || '';
+      console.log('[search] Open Library status:', r.status, '| content-type:', ct);
+      if (r.ok && ct.includes('json')) {
+        const json = await r.json();
+        console.log('[search] Open Library docs:', json.docs?.length ?? 0);
+        if (json.docs?.length) {
+          return jsonRes(res, json.docs.map(d => ({
+            key:          d.key || null,
+            title:        d.title,
+            author:       d.author_name?.[0] || 'Unknown Author',
+            cover_url:    d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+            publish_year: d.first_publish_year ? String(d.first_publish_year) : null,
+            genre:        d.subject ? d.subject.slice(0, 3).join(', ') : null,
+            description:  null,
+          })));
+        }
+      }
+    } catch (e) { console.error('[search] Open Library failed:', e.message); }
+
+    // ── Google Books (fallback) ─────────────────────────────────────────────
+    try {
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&printType=books`;
+      console.log('[search] Google Books →', url);
+      const r   = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+      console.log('[search] Google Books status:', r.status);
+      if (r.ok) {
+        const json = await r.json();
+        console.log('[search] Google Books items:', json.items?.length ?? 0);
+        if (json.items?.length) {
+          return jsonRes(res, json.items.map(item => {
+            const info = item.volumeInfo || {};
+            let cover  = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || null;
+            if (cover) cover = cover.replace('http://', 'https://');
+            return {
+              key:          item.id,
+              title:        info.title || 'Unknown Title',
+              author:       info.authors?.[0] || 'Unknown Author',
+              cover_url:    cover,
+              publish_year: info.publishedDate ? info.publishedDate.substring(0, 4) : null,
+              genre:        info.categories   ? info.categories.slice(0, 2).join(', ') : null,
+              description:  info.description  ? info.description.substring(0, 500)    : null,
+            };
+          }));
+        }
+      }
+    } catch (e) { console.error('[search] Google Books failed:', e.message); }
+
+    // Both failed or returned nothing
+    console.error('[search] Both APIs failed for query:', q);
+    return jsonRes(res, { error: 'Search unavailable' }, 500);
   }
 
   // ── Static files ─────────────────────────────────────────────────────────────
