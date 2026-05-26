@@ -460,6 +460,36 @@
     }
     .clear-link:hover { text-decoration: underline; }
 
+    /* ── Member picker pills ── */
+    .member-pill {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .member-pill.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    .member-pill:hover:not(.selected) {
+      border-color: #d1d5db;
+      background: #f9fafb;
+    }
+    .member-pill-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
     /* ── Messages ── */
     .error-msg {
       background: #fee2e2;
@@ -534,12 +564,15 @@
       .header { padding: 0 16px; }
       .header-brand { font-size: 17px; }
 
-      /* Filter bar: search takes full row, dropdowns share row 2 */
+      /* Header button — slightly slimmer so it balances with the logo */
+      .header .btn { min-height: 40px; padding: 8px 14px; font-size: 13px; }
+
+      /* Filter bar: each control takes its own full row */
       .filters { padding: 10px 12px; gap: 8px; }
       .search-wrap { flex: 0 0 100%; min-width: 0; }
-      select.filter-select { flex: 1; min-width: 0; font-size: 13px; }
-      .sort-group { flex: 1; }
-      .sort-btn { flex: 1; padding: 8px 2px; font-size: 12px; }
+      select.filter-select { flex: 0 0 100%; min-width: 0; font-size: 14px; }
+      .sort-group { flex: 0 0 100%; }
+      .sort-btn { flex: 1; padding: 9px 4px; font-size: 13px; }
       .filter-count { display: none; }
 
       /* Touch targets */
@@ -555,7 +588,10 @@
 
       /* Forms */
       .form-row { grid-template-columns: 1fr; }
-      .results-list { max-height: 180px; }
+      .results-list { max-height: 160px; }
+
+      /* Member pills slightly larger tap targets */
+      .member-pill { padding: 10px 18px; font-size: 15px; }
     }
   </style>
 </head>
@@ -661,6 +697,25 @@
       return mobile;
     }
 
+    // ── Member Picker ────────────────────────────────────────────────────────────
+    function MemberPicker({ members, value, onChange, exclude }) {
+      const available = exclude ? members.filter(m => m !== exclude) : members;
+      return (
+        <div className="member-pill-wrap">
+          {available.map(m => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onChange(value === m ? '' : m)}
+              className={`member-pill${value === m ? ' selected' : ''}`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
     // ── Book Cards (mobile list view) ─────────────────────────────────────────────
     function BookCards({ books, onBook, loading }) {
       if (loading) {
@@ -695,7 +750,7 @@
                     <span className="owner-chip">{book.owner_name}</span>
                     <span className={`badge badge-${isOut ? 'checked' : 'available'}`}>
                       <span className="badge-dot"/>
-                      {isOut ? `Out · ${book.checked_out_by}` : 'Available'}
+                      {isOut ? `Checked out · ${book.checked_out_by}` : 'Available'}
                     </span>
                   </div>
                 </div>
@@ -842,18 +897,13 @@
 
               <div className="form-group">
                 <label className="form-label">Who's borrowing this? <span className="req">*</span></label>
-                <select
-                  className="form-select"
+                <MemberPicker
+                  members={members}
                   value={name}
-                  onChange={e => { setName(e.target.value); setError(''); }}
-                  autoFocus
-                >
-                  <option value="">Select your name…</option>
-                  {members.filter(m => m !== book.owner_name).map(m =>
-                    <option key={m} value={m}>{m}</option>
-                  )}
-                </select>
-                <p className="form-hint">You can't borrow your own book.</p>
+                  onChange={v => { setName(v); setError(''); }}
+                  exclude={book.owner_name}
+                />
+                <p className="form-hint" style={{ marginTop: 8 }}>You can't borrow your own book.</p>
               </div>
 
               {error && <div className="error-msg">{error}</div>}
@@ -911,16 +961,12 @@
 
               <div className="form-group">
                 <label className="form-label">Confirm your name to return <span className="req">*</span></label>
-                <select
-                  className="form-select"
+                <MemberPicker
+                  members={members}
                   value={name}
-                  onChange={e => { setName(e.target.value); setError(''); }}
-                  autoFocus
-                >
-                  <option value="">Select your name…</option>
-                  {members.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <p className="form-hint">Only {book.checked_out_by} can return this book.</p>
+                  onChange={v => { setName(v); setError(''); }}
+                />
+                <p className="form-hint" style={{ marginTop: 8 }}>Only {book.checked_out_by} can return this book.</p>
               </div>
 
               {error && <div className="error-msg">{error}</div>}
@@ -1062,7 +1108,7 @@
             <div className="modal-body">
               <div className="tabs">
                 <button className={`tab-btn ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
-                  🔍 Search Open Library
+                  🔍 Search titles
                 </button>
                 <button className={`tab-btn ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>
                   ✏️ Enter manually
@@ -1157,10 +1203,11 @@
 
               <div className="form-group">
                 <label className="form-label">This book belongs to <span className="req">*</span></label>
-                <select className="form-select" value={owner} onChange={e => { setOwner(e.target.value); setError(''); }}>
-                  <option value="">Select owner…</option>
-                  {members.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+                <MemberPicker
+                  members={members}
+                  value={owner}
+                  onChange={v => { setOwner(v); setError(''); }}
+                />
               </div>
 
               {error && <div className="error-msg">{error}</div>}
