@@ -3,7 +3,7 @@ const fs   = require('node:fs');
 const path = require('node:path');
 
 const PORT       = 3000;
-const DATA_FILE  = path.join(__dirname, 'data.json');
+const DATA_FILE = path.join(process.env.DATA_DIR || __dirname, 'data.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // ── Configuration ──────────────────────────────────────────────────────────────
