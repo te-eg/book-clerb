@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Clerb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #111827;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 19px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.3px;
+    }
+    .header-brand-icon { font-size: 22px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: background 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+    .btn-secondary:hover:not(:disabled) { background: #e5e7eb; }
+
+    /* ── Main layout ── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    /* ── Filter bar ── */
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      color: #111827;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .search-input::placeholder { color: #9ca3af; }
+
+    select.filter-select {
+      padding: 8px 32px 8px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      height: 36px;
+      outline: none;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      font-family: inherit;
+      color: #374151;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    select.filter-select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .sort-group {
+      display: flex;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sort-btn {
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: #fff;
+      color: #6b7280;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .sort-btn + .sort-btn { border-left: 1px solid #e5e7eb; }
+    .sort-btn.active { background: #eff6ff; color: #2563eb; }
+    .sort-btn:hover:not(.active) { background: #f9fafb; }
+
+    .filter-count { font-size: 13px; color: #9ca3af; white-space: nowrap; flex-shrink: 0; }
+
+    /* ── Table ── */
+    .book-table { width: 100%; border-collapse: collapse; }
+    .book-table thead th {
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 11.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .book-table thead th:first-child { width: 56px; }
+    .book-table thead th.th-sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .book-table thead th.th-sortable:hover { color: #374151; background: #f3f4f6; }
+    .book-table thead th.th-active { color: #2563eb; }
+    .th-inner { display: inline-flex; align-items: center; gap: 4px; }
+    .th-arrow { font-size: 9px; opacity: 0.35; }
+    .th-arrow.on { opacity: 1; color: #2563eb; }
+
+    .book-table tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .book-table tbody tr:hover { background: #f0f9ff; }
+    .book-table tbody tr:last-child { border-bottom: none; }
+    .book-table td { padding: 13px 16px; font-size: 14px; vertical-align: middle; }
+    .book-table td:first-child { padding-left: 12px; padding-right: 6px; }
+
+    /* ── Cover ── */
+    .cover-thumb {
+      width: 34px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid #e5e7eb;
+      display: block;
+    }
+    .cover-placeholder {
+      width: 34px;
+      height: 48px;
+      background: #f3f4f6;
+      border-radius: 3px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+    }
+
+    /* ── Cells ── */
+    .title-text { font-weight: 600; color: #111827; }
+    .author-text { color: #6b7280; }
+    .owner-chip {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #374151;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Status badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .badge-available { background: #dcfce7; color: #15803d; }
+    .badge-checked { background: #fef3c7; color: #b45309; }
+
+    .date-text { color: #9ca3af; font-size: 13px; white-space: nowrap; }
+
+    /* ── Empty / loading states ── */
+    .state-row td { text-align: center; padding: 60px 24px; color: #9ca3af; }
+    .state-row h3 { font-size: 17px; color: #374151; margin-bottom: 6px; }
+    .state-row p { font-size: 14px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; }
+    .modal-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: none;
+      background: #f3f4f6;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      color: #6b7280;
+      line-height: 1;
+    }
+    .modal-close:hover { background: #e5e7eb; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid #f3f4f6;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ── Book preview block in modals ── */
+    .book-block {
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 20px;
+    }
+    .book-block-cover {
+      width: 52px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      flex-shrink: 0;
+    }
+    .book-block-cover-ph {
+      width: 52px;
+      height: 72px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .book-block-info { flex: 1; min-width: 0; }
+    .book-block-title { font-weight: 700; font-size: 15px; line-height: 1.3; }
+    .book-block-author { color: #6b7280; font-size: 13px; margin-top: 3px; }
+    .book-block-meta { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+
+    /* ── Form elements ── */
+    .form-group { margin-bottom: 15px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .form-label .req { color: #ef4444; margin-left: 1px; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      color: #111827;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-select {
+      padding-right: 32px;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .form-input::placeholder { color: #9ca3af; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-hint { font-size: 12px; color: #9ca3af; margin-top: 5px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: #fff;
+      color: #6b7280;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s;
+    }
+    .tab-btn + .tab-btn { border-left: 1px solid #e5e7eb; }
+    .tab-btn.active { background: #eff6ff; color: #2563eb; }
+
+    /* ── Search results ── */
+    .results-list {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background 0.1s;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover { background: #f0f9ff; }
+    .result-cover { width: 30px; height: 42px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .result-cover-ph {
+      width: 30px;
+      height: 42px;
+      background: #f3f4f6;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .result-title { font-weight: 600; font-size: 13.5px; }
+    .result-meta { font-size: 12px; color: #6b7280; margin-top: 1px; }
+
+    /* ── Selected book preview ── */
+    .selected-preview {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      margin-bottom: 4px;
+    }
+    .selected-preview-cover { width: 40px; height: 56px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .selected-preview-cover-ph {
+      width: 40px;
+      height: 56px;
+      background: #dbeafe;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .selected-preview-info { flex: 1; min-width: 0; }
+    .selected-preview-title { font-weight: 600; font-size: 14px; }
+    .selected-preview-meta { font-size: 12px; color: #3b82f6; margin-top: 3px; }
+    .clear-link {
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      margin-top: 6px;
+      display: block;
+    }
+    .clear-link:hover { text-decoration: underline; }
+
+    /* ── Messages ── */
+    .error-msg {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .divider { border: none; border-top: 1px solid #f3f4f6; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    // ── API helpers ──────────────────────────────────────────────────────────────
+    const api = {
+      get:  (path) => fetch(path).then(r => r.json()),
+      post: (path, body) => fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json()),
+    };
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // ── Icons ────────────────────────────────────────────────────────────────────
+    const IconSearch = () => (
+      <svg className="search-icon" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    );
+    const IconPlus = () => (
+      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    );
+
+    // ── Header ───────────────────────────────────────────────────────────────────
+    function Header({ onAdd }) {
+      return (
+        <header className="header">
+          <div className="header-brand">
+            <span className="header-brand-icon">📚</span>
+            Book Clerb
+          </div>
+          <button className="btn btn-primary" onClick={onAdd}>
+            <IconPlus /> Add Book
+          </button>
+        </header>
+      );
+    }
+
+    // ── Filter Bar ───────────────────────────────────────────────────────────────
+    function FilterBar({ search, onSearch, filterOwner, onFilterOwner, statusFilter, onStatusFilter, members, count, total }) {
+      return (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="filters">
+            <div className="search-wrap">
+              <IconSearch />
+              <input
+                className="search-input"
+                placeholder="Search by title or author…"
+                value={search}
+                onChange={e => onSearch(e.target.value)}
+              />
+            </div>
+
+            <select className="filter-select" value={filterOwner} onChange={e => onFilterOwner(e.target.value)}>
+              <option value="">All members</option>
+              {members.map(m => <option key={m} value={m}>{m}'s books</option>)}
+            </select>
+
+            <div className="sort-group">
+              <button
+                className={`sort-btn ${statusFilter === '' ? 'active' : ''}`}
+                onClick={() => onStatusFilter('')}
+              >All</button>
+              <button
+                className={`sort-btn ${statusFilter === 'available' ? 'active' : ''}`}
+                onClick={() => onStatusFilter(statusFilter === 'available' ? '' : 'available')}
+              >Available</button>
+              <button
+                className={`sort-btn ${statusFilter === 'checked' ? 'active' : ''}`}
+                onClick={() => onStatusFilter(statusFilter === 'checked' ? '' : 'checked')}
+              >Checked out</button>
+            </div>
+
+            <span className="filter-count">
+              {count === total ? `${total} book${total !== 1 ? 's' : ''}` : `${count} of ${total}`}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Sortable column header ────────────────────────────────────────────────────
+    function SortTh({ col, label, sortCol, sortDir, onSort, style }) {
+      const active = sortCol === col;
+      const arrow  = active ? (sortDir === 'asc' ? '▲' : '▼') : '▲';
+      return (
+        <th
+          className={`th-sortable${active ? ' th-active' : ''}`}
+          onClick={() => onSort(col)}
+          style={style}
+        >
+          <span className="th-inner">
+            {label}
+            <span className={`th-arrow${active ? ' on' : ''}`}>{arrow}</span>
+          </span>
+        </th>
+      );
+    }
+
+    // ── Book Table ───────────────────────────────────────────────────────────────
+    function BookTable({ books, onBook, loading, sortCol, sortDir, onSort }) {
+      if (loading) {
+        return (
+          <div className="card">
+            <table className="book-table">
+              <tbody><tr className="state-row"><td colSpan={6}>Loading your library…</td></tr></tbody>
+            </table>
+          </div>
+        );
+      }
+
+      if (!books.length) {
+        return (
+          <div className="card">
+            <table className="book-table">
+              <tbody>
+                <tr className="state-row">
+                  <td colSpan={6}>
+                    <h3>No books found</h3>
+                    <p>Try a different search, or add the first book to the club.</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
+      const sp = { sortCol, sortDir, onSort };
+      return (
+        <div className="card">
+          <table className="book-table">
+            <thead>
+              <tr>
+                <th></th>
+                <SortTh col="title"  label="Title"  {...sp} />
+                <SortTh col="author" label="Author" {...sp} />
+                <SortTh col="owner"  label="Owner"  {...sp} />
+                <SortTh col="status" label="Status" {...sp} />
+                <SortTh col="added"  label="Added"  {...sp} style={{ whiteSpace: 'nowrap' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {books.map(book => <BookRow key={book.id} book={book} onClick={() => onBook(book)} />)}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function BookRow({ book, onClick }) {
+      const isOut = !!book.checked_out_by;
+      return (
+        <tr
+          onClick={onClick}
+          title={isOut ? `Checked out by ${book.checked_out_by} — click to return` : 'Click to check out'}
+        >
+          <td>
+            {book.cover_url
+              ? <img src={book.cover_url} className="cover-thumb" alt="" />
+              : <div className="cover-placeholder">📖</div>
+            }
+          </td>
+          <td><span className="title-text">{book.title}</span></td>
+          <td><span className="author-text">{book.author || '—'}</span></td>
+          <td><span className="owner-chip">{book.owner_name}</span></td>
+          <td>
+            {isOut
+              ? <span className="badge badge-checked"><span className="badge-dot"/>Checked out · {book.checked_out_by}</span>
+              : <span className="badge badge-available"><span className="badge-dot"/>Available</span>
+            }
+          </td>
+          <td><span className="date-text">{fmtDate(book.added_at)}</span></td>
+        </tr>
+      );
+    }
+
+    // ── Checkout Modal ───────────────────────────────────────────────────────────
+    function CheckoutModal({ book, members, onClose, onSave }) {
+      const [name, setName] = useState('');
+      const [error, setError] = useState('');
+      const [saving, setSaving] = useState(false);
+
+      async function handleSubmit() {
+        if (!name) return setError('Please select your name.');
+        setSaving(true);
+        const res = await api.post(`/api/books/${book.id}/checkout`, { member_name: name });
+        if (res.error) { setError(res.error); setSaving(false); return; }
+        onSave(); onClose();
+      }
+
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Check Out Book</span>
+              <button className="modal-close" onClick={onClose}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="book-block">
+                {book.cover_url
+                  ? <img src={book.cover_url} className="book-block-cover" alt="" />
+                  : <div className="book-block-cover-ph">📖</div>
+                }
+                <div className="book-block-info">
+                  <div className="book-block-title">{book.title}</div>
+                  <div className="book-block-author">{book.author || 'Unknown author'}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <span className="badge badge-available"><span className="badge-dot"/>Available</span>
+                  </div>
+                  <div className="book-block-meta">Owned by {book.owner_name}</div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Who's borrowing this? <span className="req">*</span></label>
+                <select
+                  className="form-select"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setError(''); }}
+                  autoFocus
+                >
+                  <option value="">Select your name…</option>
+                  {members.filter(m => m !== book.owner_name).map(m =>
+                    <option key={m} value={m}>{m}</option>
+                  )}
+                </select>
+                <p className="form-hint">You can't borrow your own book.</p>
+              </div>
+
+              {error && <div className="error-msg">{error}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmit} disabled={saving || !name}>
+                {saving ? 'Checking out…' : 'Check Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Return Modal ─────────────────────────────────────────────────────────────
+    function ReturnModal({ book, members, onClose, onSave }) {
+      const [name, setName] = useState('');
+      const [error, setError] = useState('');
+      const [saving, setSaving] = useState(false);
+
+      async function handleReturn() {
+        if (!name) return setError('Please confirm who is returning this book.');
+        if (name !== book.checked_out_by) return setError(`Only ${book.checked_out_by} can return this book.`);
+        setSaving(true);
+        const res = await api.post(`/api/books/${book.id}/return`, { member_name: name });
+        if (res.error) { setError(res.error); setSaving(false); return; }
+        onSave(); onClose();
+      }
+
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Return Book</span>
+              <button className="modal-close" onClick={onClose}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="book-block">
+                {book.cover_url
+                  ? <img src={book.cover_url} className="book-block-cover" alt="" />
+                  : <div className="book-block-cover-ph">📖</div>
+                }
+                <div className="book-block-info">
+                  <div className="book-block-title">{book.title}</div>
+                  <div className="book-block-author">{book.author || 'Unknown author'}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <span className="badge badge-checked"><span className="badge-dot"/>Checked out by {book.checked_out_by}</span>
+                  </div>
+                  {book.checked_out_at &&
+                    <div className="book-block-meta">Since {fmtDate(book.checked_out_at)}</div>
+                  }
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Confirm your name to return <span className="req">*</span></label>
+                <select
+                  className="form-select"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setError(''); }}
+                  autoFocus
+                >
+                  <option value="">Select your name…</option>
+                  {members.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <p className="form-hint">Only {book.checked_out_by} can return this book.</p>
+              </div>
+
+              {error && <div className="error-msg">{error}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleReturn} disabled={saving || !name}>
+                {saving ? 'Returning…' : 'Return Book'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Add Book Modal ────────────────────────────────────────────────────────────
+    function AddModal({ members, onClose, onSave }) {
+      const [tab, setTab]           = useState('search');
+      const [query, setQuery]       = useState('');
+      const [results, setResults]   = useState([]);
+      const [searching, setSearching] = useState(false);
+      const [searchErr, setSearchErr] = useState(false);
+      const [selected, setSelected] = useState(null);
+      const [owner, setOwner]       = useState('');
+      const [error, setError]       = useState('');
+      const [saving, setSaving]     = useState(false);
+
+      const [manTitle, setManTitle]   = useState('');
+      const [manAuthor, setManAuthor] = useState('');
+      const [manYear, setManYear]     = useState('');
+      const [manGenre, setManGenre]   = useState('');
+
+      const timerRef = useRef(null);
+
+      async function doSearch(q) {
+        if (!q.trim()) { setResults([]); setSearchErr(false); return; }
+        setSearching(true);
+        setSearchErr(false);
+        try {
+          const data = await api.get(`/api/search?q=${encodeURIComponent(q)}`);
+          if (data && data.error) { setSearchErr(true); setResults([]); }
+          else setResults(Array.isArray(data) ? data : []);
+        } catch { setSearchErr(true); setResults([]); }
+        setSearching(false);
+      }
+
+      function handleQueryChange(val) {
+        setQuery(val);
+        setSelected(null);
+        setSearchErr(false);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => doSearch(val), 300);
+      }
+
+      async function handleSave() {
+        setError('');
+        if (!owner) return setError('Please select who owns this book.');
+
+        let body;
+        if (tab === 'search') {
+          if (!selected) return setError('Please select a book from the search results.');
+          body = {
+            owner_name: owner, title: selected.title, author: selected.author,
+            cover_url: selected.cover_url, genre: selected.genre,
+            publish_year: selected.publish_year, ol_key: selected.key,
+          };
+        } else {
+          if (!manTitle.trim()) return setError('Title is required.');
+          body = {
+            owner_name: owner, title: manTitle.trim(),
+            author: manAuthor.trim() || 'Unknown Author',
+            genre: manGenre.trim() || null,
+            publish_year: manYear.trim() || null,
+          };
+        }
+
+        setSaving(true);
+        const res = await api.post('/api/books', body);
+        if (res.error) { setError(res.error); setSaving(false); return; }
+        onSave(); onClose();
+      }
+
+      return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Add a Book</span>
+              <button className="modal-close" onClick={onClose}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="tabs">
+                <button className={`tab-btn ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
+                  🔍 Search Open Library
+                </button>
+                <button className={`tab-btn ${tab === 'manual' ? 'active' : ''}`} onClick={() => setTab('manual')}>
+                  ✏️ Enter manually
+                </button>
+              </div>
+
+              {tab === 'search' && (
+                <div className="form-group">
+                  {!selected ? (
+                    <>
+                      <label className="form-label">Search by title</label>
+                      <input
+                        className="form-input"
+                        placeholder="e.g. The Name of the Wind"
+                        value={query}
+                        onChange={e => handleQueryChange(e.target.value)}
+                        autoFocus
+                      />
+                      {searching && <p className="form-hint" style={{ marginTop: 8 }}>Searching…</p>}
+                      {results.length > 0 && (
+                        <div className="results-list">
+                          {results.map((r, i) => (
+                            <div key={i} className="result-item" onClick={() => { setSelected(r); setResults([]); setError(''); }}>
+                              {r.cover_url
+                                ? <img src={r.cover_url} className="result-cover" alt="" />
+                                : <div className="result-cover-ph">📖</div>
+                              }
+                              <div>
+                                <div className="result-title">{r.title}</div>
+                                <div className="result-meta">{r.author}{r.publish_year ? ` · ${r.publish_year}` : ''}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!searching && searchErr && (
+                        <p className="form-hint" style={{ marginTop: 8, color: '#dc2626' }}>
+                          ⚠️ Search unavailable — check that the server is running, then try again or use "Enter manually."
+                        </p>
+                      )}
+                      {!searching && !searchErr && query.length > 2 && results.length === 0 && (
+                        <p className="form-hint" style={{ marginTop: 8 }}>
+                          No results — try different keywords or use "Enter manually."
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="selected-preview">
+                      {selected.cover_url
+                        ? <img src={selected.cover_url} className="selected-preview-cover" alt="" />
+                        : <div className="selected-preview-cover-ph">📖</div>
+                      }
+                      <div className="selected-preview-info">
+                        <div className="selected-preview-title">{selected.title}</div>
+                        <div className="selected-preview-meta">
+                          {selected.author}{selected.publish_year ? ` · ${selected.publish_year}` : ''}
+                          {selected.genre ? ` · ${selected.genre}` : ''}
+                        </div>
+                        <button className="clear-link" onClick={() => { setSelected(null); setQuery(''); }}>
+                          ← Search again
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'manual' && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Title <span className="req">*</span></label>
+                    <input className="form-input" placeholder="Book title" value={manTitle} onChange={e => setManTitle(e.target.value)} autoFocus />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Author</label>
+                    <input className="form-input" placeholder="Author name" value={manAuthor} onChange={e => setManAuthor(e.target.value)} />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Year published</label>
+                      <input className="form-input" placeholder="e.g. 2023" value={manYear} onChange={e => setManYear(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Genre</label>
+                      <input className="form-input" placeholder="e.g. Fantasy" value={manGenre} onChange={e => setManGenre(e.target.value)} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <hr className="divider" />
+
+              <div className="form-group">
+                <label className="form-label">This book belongs to <span className="req">*</span></label>
+                <select className="form-select" value={owner} onChange={e => { setOwner(e.target.value); setError(''); }}>
+                  <option value="">Select owner…</option>
+                  {members.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+
+              {error && <div className="error-msg">{error}</div>}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? 'Adding…' : 'Add Book'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── App ───────────────────────────────────────────────────────────────────────
+    function App() {
+      const [books, setBooks]               = useState([]);
+      const [members, setMembers]           = useState([]);
+      const [search, setSearch]             = useState('');
+      const [filterOwner, setFilterOwner]   = useState('');
+      const [statusFilter, setStatusFilter] = useState('');
+      const [sortCol, setSortCol]           = useState('added');
+      const [sortDir, setSortDir]           = useState('desc');
+      const [modal, setModal]               = useState(null);
+      const [loading, setLoading]           = useState(true);
+
+      const load = useCallback(async () => {
+        try {
+          const [b, m] = await Promise.all([api.get('/api/books'), api.get('/api/members')]);
+          setBooks(Array.isArray(b) ? b : []);
+          setMembers(Array.isArray(m) ? m : []);
+        } catch (e) { console.error('Failed to load:', e); }
+        setLoading(false);
+      }, []);
+
+      useEffect(() => { load(); }, [load]);
+
+      function handleSort(col) {
+        if (sortCol === col) {
+          setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+          setSortCol(col);
+          setSortDir('asc');
+        }
+      }
+
+      const filtered = useMemo(() => {
+        let list = [...books];
+        const q = search.toLowerCase();
+        if (q) list = list.filter(b => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q));
+        if (filterOwner) list = list.filter(b => b.owner_name === filterOwner);
+        if (statusFilter === 'available') list = list.filter(b => !b.checked_out_by);
+        if (statusFilter === 'checked')   list = list.filter(b => !!b.checked_out_by);
+
+        if (sortCol) {
+          list.sort((a, b) => {
+            let av, bv;
+            if (sortCol === 'title')  { av = a.title?.toLowerCase()      || ''; bv = b.title?.toLowerCase()      || ''; }
+            if (sortCol === 'author') { av = a.author?.toLowerCase()     || ''; bv = b.author?.toLowerCase()     || ''; }
+            if (sortCol === 'owner')  { av = a.owner_name?.toLowerCase() || ''; bv = b.owner_name?.toLowerCase() || ''; }
+            if (sortCol === 'status') { av = a.checked_out_by ? 1 : 0;         bv = b.checked_out_by ? 1 : 0; }
+            if (sortCol === 'added')  { av = a.added_at || '';                  bv = b.added_at || ''; }
+            if (av < bv) return sortDir === 'asc' ? -1 : 1;
+            if (av > bv) return sortDir === 'asc' ?  1 : -1;
+            return 0;
+          });
+        }
+        return list;
+      }, [books, search, filterOwner, statusFilter, sortCol, sortDir]);
+
+      function openBook(book) {
+        setModal({ type: book.checked_out_by ? 'return' : 'checkout', book });
+      }
+
+      return (
+        <>
+          <Header onAdd={() => setModal({ type: 'add' })} />
+          <main className="main">
+            <FilterBar
+              search={search}             onSearch={setSearch}
+              filterOwner={filterOwner}   onFilterOwner={setFilterOwner}
+              statusFilter={statusFilter} onStatusFilter={setStatusFilter}
+              members={members}
+              count={filtered.length}     total={books.length}
+            />
+            <BookTable
+              books={filtered} onBook={openBook} loading={loading}
+              sortCol={sortCol} sortDir={sortDir} onSort={handleSort}
+            />
+          </main>
+
+          {modal?.type === 'add' &&
+            <AddModal members={members} onClose={() => setModal(null)} onSave={load} />}
+          {modal?.type === 'checkout' &&
+            <CheckoutModal book={modal.book} members={members} onClose={() => setModal(null)} onSave={load} />}
+          {modal?.type === 'return' &&
+            <ReturnModal book={modal.book} members={members} onClose={() => setModal(null)} onSave={load} />}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
